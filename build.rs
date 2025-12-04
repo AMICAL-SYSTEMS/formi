@@ -1,6 +1,5 @@
 use std::{
     env,
-    error::Error,
     fs::{self, File},
     io::{BufWriter, Write},
     path::{Path, PathBuf},
@@ -24,7 +23,7 @@ fn main() {
         assert_eq!(path.extension().unwrap(), "rs");
 
         println!("cargo:rerun-if-changed={}", path.display());
-        calls.extend(find_define_word_calls(&path).unwrap());
+        calls.extend(find_define_word_calls(&path));
     }
 
     let map_entries: Vec<(String, String)> = calls
@@ -58,14 +57,14 @@ struct DefineWordCall {
     token: String,
 }
 
-fn find_define_word_calls(path: &Path) -> Result<Vec<DefineWordCall>, Box<dyn Error>> {
+fn find_define_word_calls(path: &Path) -> Vec<DefineWordCall> {
     let module = path
         .file_stem()
         .and_then(|s| s.to_str())
-        .ok_or("Invalid module filename")?
-        .to_owned();
-    let content = fs::read_to_string(path)?;
-    let syntax = syn::parse_file(&content)?;
+        .unwrap()
+        .to_string();
+    let content = fs::read_to_string(path).unwrap();
+    let syntax = syn::parse_file(&content).unwrap();
 
     let mut visitor = DefineWordVisitor {
         module_name: module,
@@ -73,7 +72,7 @@ fn find_define_word_calls(path: &Path) -> Result<Vec<DefineWordCall>, Box<dyn Er
     };
     visitor.visit_file(&syntax);
 
-    Ok(visitor.calls)
+    visitor.calls
 }
 
 struct DefineWordVisitor {
@@ -107,7 +106,6 @@ impl Parse for DefineWordArgs {
         let token: LitStr = input.parse()?;
         input.parse::<Token![,]>()?;
 
-        // Swallow the remaining tokens (the execution closure).
         let _: proc_macro2::TokenStream = input.parse()?;
 
         Ok(Self { type_ident, token })
