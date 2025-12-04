@@ -24,7 +24,7 @@ pub fn repl() -> ! {
 
         stdin.read_line(&mut line).unwrap();
         if let Err(e) = interpreter.execute_tokens(line.to_string()) {
-            eprintln!(" ? runtime error: {e}");
+            eprintln!("? runtime error: {e}");
         }
         line.clear();
     }
