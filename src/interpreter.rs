@@ -42,7 +42,8 @@ impl Interpreter {
         let mut tokens = tokens.split_ascii_whitespace();
         while let Some(token) = tokens.next() {
             if let Some(fixed_token_exec_routine) = FIXED_TOKENS_MAP.get(token) {
-                fixed_token_exec_routine(self)?
+                fixed_token_exec_routine(self)?;
+                continue;
             }
 
             match token {
