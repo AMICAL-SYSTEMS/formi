@@ -1,10 +1,10 @@
 use std::{
     eprintln,
     io::{self, Write},
-    string::String,
+    string::{String, ToString},
 };
 
-use crate::{interpreter::Interpreter, tokens::Token};
+use crate::interpreter::Interpreter;
 
 pub const REPL_HEADER_TEXT: &str = "Formi 0.1.0 REPL\n\nCrafted by AMICAL SYSTEMS.\n";
 
@@ -19,12 +19,11 @@ pub fn repl() -> ! {
     let stdin = io::stdin();
     let mut line = String::new();
     loop {
-        stdout.write(b"> ").unwrap();
+        stdout.write_all(b"> ").unwrap();
         stdout.flush().unwrap();
 
         stdin.read_line(&mut line).unwrap();
-        let tokens = line.split_whitespace().map(|s| Token::from(s)).collect();
-        if let Err(e) = interpreter.execute_tokens(tokens) {
+        if let Err(e) = interpreter.execute_tokens(line.to_string()) {
             eprintln!(" ? runtime error: {e}");
         }
         line.clear();

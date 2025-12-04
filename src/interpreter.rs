@@ -8,11 +8,7 @@ use std::{
 
 use alloc::format;
 
-use crate::{
-    error::RuntimeError,
-    stack::Stack,
-    tokens::{Token, Tokens},
-};
+use crate::{core::FIXED_TOKENS_MAP, error::RuntimeError, stack::Stack};
 
 #[derive(Debug, PartialEq, Eq)]
 enum InterpreterState {
@@ -26,9 +22,9 @@ enum InterpreterState {
 }
 
 pub struct Interpreter {
-    stack: Stack,
+    pub stack: Stack,
     state: InterpreterState,
-    definitions: HashMap<String, Tokens>,
+    definitions: HashMap<String, String>,
     stdout: Stdout,
 }
 
@@ -42,25 +38,25 @@ impl Interpreter {
         }
     }
 
-    pub fn execute_tokens(&mut self, mut tokens: Tokens) -> Result<(), RuntimeError> {
-        while let Some(token) = tokens.pop_front() {
+    pub fn execute_tokens(&mut self, tokens: String) -> Result<(), RuntimeError> {
+        let mut tokens = tokens.split_ascii_whitespace();
+        while let Some(token) = tokens.next() {
+            if let Some(fixed_token_exec_routine) = FIXED_TOKENS_MAP.get(token) {
+                fixed_token_exec_routine(self)?
+            }
+
             match token {
-                Token::Plus => {
-                    let a = self.stack.pop().ok_or(RuntimeError::EmptyStack)?;
-                    let b = self.stack.pop().ok_or(RuntimeError::EmptyStack)?;
-                    self.stack.push(a + b);
-                }
-                Token::Minus => {
+                "-" => {
                     let a = self.stack.pop().ok_or(RuntimeError::EmptyStack)?;
                     let b = self.stack.pop().ok_or(RuntimeError::EmptyStack)?;
                     self.stack.push(a - b);
                 }
-                Token::Mul => {
+                "*" => {
                     let a = self.stack.pop().ok_or(RuntimeError::EmptyStack)?;
                     let b = self.stack.pop().ok_or(RuntimeError::EmptyStack)?;
                     self.stack.push(a * b);
                 }
-                Token::Div => {
+                "/" => {
                     let a = self.stack.pop().ok_or(RuntimeError::EmptyStack)?;
                     let b = self.stack.pop().ok_or(RuntimeError::EmptyStack)?;
                     if b == 0 {
@@ -69,7 +65,7 @@ impl Interpreter {
                         self.stack.push(a / b);
                     }
                 }
-                Token::Mod => {
+                "mod" => {
                     let a = self.stack.pop().ok_or(RuntimeError::EmptyStack)?;
                     let b = self.stack.pop().ok_or(RuntimeError::EmptyStack)?;
                     if b == 0 {
@@ -78,25 +74,31 @@ impl Interpreter {
                         self.stack.push(a.rem_euclid(b));
                     }
                 }
-                Token::Dot => {
+                "." => {
                     let a = self.stack.pop().ok_or(RuntimeError::EmptyStack)?;
                     self.stdout_write(a.to_string().as_bytes())?;
                 }
-                Token::Colon => {
+                ":" => {
                     self.state = InterpreterState::Word;
-                    let word_token = tokens.pop_front().ok_or(RuntimeError::EmptyStack)?;
-                    if let Token::Word(word) = word_token {
+                    let word_token = tokens.next().ok_or(RuntimeError::EmptyStack)?;
+                    // Not a known word, not a number
+                    let is_word = !FIXED_TOKENS_MAP.contains_key(word_token)
+                        && word_token.parse::<u64>().is_err();
+
+                    if is_word {
+                        let word = word_token;
+
                         let mut def_token = vec![];
-                        while let Some(token) = tokens.pop_front() {
+                        for token in tokens.by_ref() {
                             match token {
-                                Token::SemiColon => break,
+                                ";" => break,
                                 other => def_token.push(other),
                             }
                         }
 
                         if self
                             .definitions
-                            .insert(word.clone(), def_token.into())
+                            .insert(word.to_string(), def_token.join(" "))
                             .is_some()
                         {
                             self.stdout_write(
@@ -108,61 +110,62 @@ impl Interpreter {
                         return Err(RuntimeError::ExpectedWord);
                     }
                 }
-                Token::SemiColon => {
+                ";" => {
                     debug_assert_eq!(self.state, InterpreterState::Word);
                     self.state = InterpreterState::Normal;
                 }
-                Token::Cr => {
+                "cr" => {
                     self.stdout_write(b"\n")?;
                 }
-                Token::Number(nb) => {
-                    self.stack.push(nb);
-                }
-                Token::Word(word) => {
-                    if let Some(tokens) = self.definitions.get(&word).cloned() {
-                        self.state = InterpreterState::Word;
-                        self.execute_tokens(tokens)?;
-                    }
-                }
-                Token::DotQuote => {
+                ".\"" => {
                     let mut vec_token = vec![];
-                    while let Some(token) = tokens.pop_front() {
+                    for token in tokens.by_ref() {
                         match token {
-                            Token::Quote => break,
+                            "\"" => break,
                             other => vec_token.push(other),
                         }
                     }
 
                     self.stdout_write(format!("{:?}", vec_token).as_bytes())?;
                 }
-                Token::Do => {
+                "DO" => {
                     let min_bound = self.pop_last_stack()?;
                     let max_bound = self.pop_last_stack()?;
                     let range = min_bound..max_bound;
 
                     let mut vec_token = vec![];
-                    while let Some(token) = tokens.pop_front() {
+                    for token in tokens.by_ref() {
                         match token {
-                            Token::Loop => break,
+                            "LOOP" => break,
                             other => vec_token.push(other),
                         }
                     }
 
-                    let looping_tokens: Tokens = vec_token.into();
+                    let looping_tokens = vec_token.join(" ");
                     for i in range.clone() {
                         self.state = InterpreterState::Loop(range.clone(), i);
                         self.execute_tokens(looping_tokens.clone())?;
                     }
                     self.state = InterpreterState::Normal
                 }
-                Token::I => {
+                "I" => {
                     if let InterpreterState::Loop(_, i) = self.state {
                         self.stack.push(i);
                     } else {
                         return Err(RuntimeError::NotInLoop);
                     }
                 }
-                Token::Quote | Token::Loop => { /* no-op */ }
+                "\"" | "LOOP" => { /* no-op */ }
+                unknown => match unknown.parse::<u64>() {
+                    Ok(number) => self.stack.push(number),
+                    Err(_) => {
+                        // Could be a word
+                        if let Some(tokens) = self.definitions.get(unknown).cloned() {
+                            self.state = InterpreterState::Word;
+                            self.execute_tokens(tokens)?;
+                        }
+                    }
+                },
             }
         }
 

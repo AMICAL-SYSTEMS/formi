@@ -4,9 +4,9 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
+pub mod core;
 pub mod error;
 pub mod stack;
-pub mod tokens;
 
 #[cfg(feature = "repl")]
 pub mod interpreter;
