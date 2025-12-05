@@ -14,16 +14,35 @@ fn main() {
 
     let core_dir = PathBuf::from("src/core");
     let mut calls = Vec::new();
+    let mut modules = Vec::new();
 
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed=src/core/mod.rs");
+    println!("cargo:rerun-if-changed=src/core");
+    println!("cargo:rerun-if-changed=src/core.rs");
 
     for entry in fs::read_dir(&core_dir).unwrap() {
         let path = entry.unwrap().path();
         assert_eq!(path.extension().unwrap(), "rs");
 
         println!("cargo:rerun-if-changed={}", path.display());
+        modules.push(
+            path.file_stem()
+                .unwrap()
+                .to_os_string()
+                .into_string()
+                .unwrap(),
+        );
         calls.extend(find_define_word_calls(&path));
+    }
+
+    modules.sort();
+    for module in modules {
+        let mod_path = core_dir
+            .join(format!("{module}.rs"))
+            .canonicalize()
+            .unwrap();
+        writeln!(file, "#[path = \"{}\"]", mod_path.display()).unwrap();
+        writeln!(file, "pub mod r#{};", module).unwrap();
     }
 
     let map_entries: Vec<(String, String)> = calls
