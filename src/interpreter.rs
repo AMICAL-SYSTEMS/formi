@@ -5,7 +5,12 @@ use std::{
     string::{String, ToString},
 };
 
-use crate::{core::FIXED_TOKENS_MAP, error::RuntimeError, stack::DataStack};
+use crate::{
+    core::FIXED_TOKENS_MAP,
+    error::RuntimeError,
+    stack::DataStack,
+    types::{Cell, Number},
+};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum InterpreterState {
@@ -41,8 +46,8 @@ impl Interpreter {
             if let Some(fixed_token_exec_routine) = FIXED_TOKENS_MAP.get(token) {
                 fixed_token_exec_routine(self, &mut tokens)?;
             } else {
-                match token.parse::<u64>() {
-                    Ok(number) => self.stack.push(number),
+                match token.parse::<Number>() {
+                    Ok(number) => self.stack.push(number as Cell),
                     Err(_) => {
                         // Could be a word
                         if let Some(tokens) = self.definitions.get(token).cloned() {
@@ -60,7 +65,7 @@ impl Interpreter {
     }
 
     #[inline]
-    pub fn pop_last_stack(&mut self) -> Result<u64, RuntimeError> {
+    pub fn pop_last_stack(&mut self) -> Result<Cell, RuntimeError> {
         self.stack.pop().ok_or(RuntimeError::EmptyStack)
     }
 
