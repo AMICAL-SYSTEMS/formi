@@ -1,10 +1,10 @@
-use std::string::ToString;
+use alloc::format;
 
 use crate::error::RuntimeError;
 
 crate::define_word!(Dot, ".", |it, _tks| {
     let a = it.stack.pop().ok_or(RuntimeError::EmptyStack)?;
-    it.stdout_write(a.to_string().as_bytes())?;
+    it.stdout_write(format!("{a}\n").as_bytes())?;
 
     Ok(())
 });
