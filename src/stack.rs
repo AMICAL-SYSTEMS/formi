@@ -1,16 +1,21 @@
-#[derive(Debug, Default)]
-pub struct Stack(alloc::vec::Vec<u64>);
+use crate::types::Cell;
 
-impl Stack {
-    pub fn push(&mut self, value: u64) {
+#[derive(Debug, Default)]
+pub struct DataStack(alloc::vec::Vec<Cell>);
+
+impl DataStack {
+    #[inline]
+    pub fn push(&mut self, value: Cell) {
         self.0.push(value);
     }
 
-    pub fn pop(&mut self) -> Option<u64> {
+    #[inline]
+    pub fn pop(&mut self) -> Option<Cell> {
         self.0.pop()
     }
 
-    pub fn peek(&self) -> Option<u64> {
+    #[inline]
+    pub fn peek(&self) -> Option<Cell> {
         self.0.last().copied()
     }
 }

@@ -6,7 +6,7 @@ use std::{
 
 use crate::interpreter::Interpreter;
 
-pub const REPL_HEADER_TEXT: &str = "Formi 0.1.0 REPL\n\nCrafted by AMICAL SYSTEMS.\n";
+pub const REPL_HEADER_TEXT: &str = "Formi REPL -- Crafted by AMICAL SYSTEMS.\n";
 
 pub fn repl() -> ! {
     let mut stdout = io::stdout();

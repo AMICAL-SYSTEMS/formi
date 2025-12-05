@@ -5,7 +5,7 @@ use std::{
     string::{String, ToString},
 };
 
-use crate::{core::FIXED_TOKENS_MAP, error::RuntimeError, stack::Stack};
+use crate::{core::FIXED_TOKENS_MAP, error::RuntimeError, stack::DataStack};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum InterpreterState {
@@ -19,7 +19,7 @@ pub enum InterpreterState {
 }
 
 pub struct Interpreter {
-    pub stack: Stack,
+    pub stack: DataStack,
     pub state: InterpreterState,
     pub definitions: HashMap<String, String>,
     stdout: Stdout,
@@ -28,7 +28,7 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn init(stdout: Stdout) -> Self {
         Self {
-            stack: Stack::default(),
+            stack: DataStack::default(),
             state: InterpreterState::Normal,
             definitions: HashMap::new(),
             stdout,
