@@ -9,7 +9,7 @@ use crate::{
     core::FIXED_TOKENS_MAP,
     error::RuntimeError,
     stack::DataStack,
-    types::{Cell, Number},
+    types::{Cell, Number, UnsignedInteger},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -44,20 +44,20 @@ impl Interpreter {
         let mut tokens = tokens.split_ascii_whitespace();
         while let Some(token) = tokens.next() {
             if let Some(fixed_token_exec_routine) = FIXED_TOKENS_MAP.get(token) {
+                // Core word
                 fixed_token_exec_routine(self, &mut tokens)?;
+            } else if let Ok(number) = token.parse::<Number>() {
+                // Signed number
+                self.stack.push(number as Cell);
+            } else if let Ok(number) = token.parse::<UnsignedInteger>() {
+                // Unsigned number
+                self.stack.push(number as Cell);
+            } else if let Some(tokens) = self.definitions.get(token).cloned() {
+                // Word defined at runtime
+                self.state = InterpreterState::Word;
+                self.execute_tokens(tokens)?;
             } else {
-                match token.parse::<Number>() {
-                    Ok(number) => self.stack.push(number as Cell),
-                    Err(_) => {
-                        // Could be a word
-                        if let Some(tokens) = self.definitions.get(token).cloned() {
-                            self.state = InterpreterState::Word;
-                            self.execute_tokens(tokens)?;
-                        } else {
-                            return Err(RuntimeError::UnknownToken(token.to_string()));
-                        }
-                    }
-                }
+                return Err(RuntimeError::UnknownToken(token.to_string()));
             }
         }
 
