@@ -9,7 +9,7 @@ use crate::{
     core::FIXED_TOKENS_MAP,
     error::RuntimeError,
     stack::DataStack,
-    types::{Cell, Number, UnsignedInteger},
+    types::{Cell, CellPair, Number, UnsignedInteger},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -67,6 +67,20 @@ impl Interpreter {
     #[inline]
     pub fn pop_last_stack(&mut self) -> Result<Cell, RuntimeError> {
         self.stack.pop().ok_or(RuntimeError::EmptyStack)
+    }
+
+    #[inline]
+    pub fn pop_pair_last_stack(&mut self) -> Result<CellPair, RuntimeError> {
+        let c2: Cell = self.pop_last_stack()?;
+        let c1: Cell = self.pop_last_stack()?;
+
+        Ok((c1, c2))
+    }
+
+    #[inline]
+    pub fn push_pair_stack(&mut self, pair: CellPair) {
+        self.stack.push(pair.0);
+        self.stack.push(pair.1);
     }
 
     #[inline]

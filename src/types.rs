@@ -4,6 +4,25 @@
 /// > fundamental data type of Forth. All other data types are actually
 /// > represented by one or more single-cell stack entries.
 pub type Cell = u64;
+pub type CellPair = (Cell, Cell);
+
+#[inline]
+pub fn cell_pair_to_double_number(pair: CellPair) -> UnsignedDoubleCellInteger {
+    // SAFETY: (u64, u64) (which is CellPair) and u128 (which is UnsignedDoubleCellInteger)
+    // are homomorphic, and their values can be interchanged in memory, as they are
+    // valid in all cases. Because we're transmuting values (not pointers), alignment
+    // is not a concern.
+    unsafe { std::mem::transmute::<CellPair, UnsignedDoubleCellInteger>(pair) }
+}
+
+#[inline]
+pub fn double_number_to_cell_pair(ud: UnsignedDoubleCellInteger) -> CellPair {
+    // SAFETY: (u64, u64) (which is CellPair) and u128 (which is UnsignedDoubleCellInteger)
+    // are homomorphic, and their values can be interchanged in memory, as they are
+    // valid in all cases. Because we're transmuting values (not pointers), alignment
+    // is not a concern.
+    unsafe { std::mem::transmute::<UnsignedDoubleCellInteger, CellPair>(ud) }
+}
 
 /// As defined in [`https://www.taygeta.com/forth/dpansa3.htm#A.3.1.3.1`]:
 ///
@@ -16,7 +35,9 @@ pub const FALSE_FLAG: Flag = 0u64;
 
 pub type Number = i64;
 pub type UnsignedInteger = u64;
+pub type UnsignedDoubleCellInteger = u128;
 pub type SignedInteger = i64;
+pub type SignedDoubleCellInteger = i128;
 
 /// As defined in [`https://www.taygeta.com/forth/dpansa3.htm#A.3.1.3.3`]:
 ///
