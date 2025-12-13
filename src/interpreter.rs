@@ -1,4 +1,3 @@
-use core::ops::Range;
 use std::{
     collections::HashMap,
     io::{Stdout, Write},
@@ -8,7 +7,8 @@ use std::{
 use crate::{
     core::FIXED_TOKENS_MAP,
     error::RuntimeError,
-    stack::DataStack,
+    r#loop::LoopSys,
+    stack::{DataStack, ReturnStack},
     types::{Cell, CellPair, Number, UnsignedInteger},
 };
 
@@ -17,14 +17,12 @@ pub enum InterpreterState {
     Normal,
     /// Interpreting a word definition or creating one
     Word,
-    Loop(
-        Range<u64>, /* iterations */
-        u64,        /* index of current iteration */
-    ),
+    Loop(LoopSys),
 }
 
 pub struct Interpreter {
     pub stack: DataStack,
+    pub return_stack: ReturnStack,
     pub state: InterpreterState,
     pub definitions: HashMap<String, String>,
     stdout: Stdout,
@@ -34,6 +32,7 @@ impl Interpreter {
     pub fn init(stdout: Stdout) -> Self {
         Self {
             stack: DataStack::default(),
+            return_stack: ReturnStack::default(),
             state: InterpreterState::Normal,
             definitions: HashMap::new(),
             stdout,
@@ -67,6 +66,11 @@ impl Interpreter {
     #[inline]
     pub fn pop_last_stack(&mut self) -> Result<Cell, RuntimeError> {
         self.stack.pop().ok_or(RuntimeError::EmptyStack)
+    }
+
+    #[inline]
+    pub fn pop_last_return_stack(&mut self) -> Result<Cell, RuntimeError> {
+        self.return_stack.pop().ok_or(RuntimeError::EmptyStack)
     }
 
     #[inline]

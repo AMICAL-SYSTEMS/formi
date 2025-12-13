@@ -1,9 +1,12 @@
 use crate::types::Cell;
 
 #[derive(Debug, Default)]
-pub struct DataStack(alloc::vec::Vec<Cell>);
+pub struct CellStack(alloc::vec::Vec<Cell>);
 
-impl DataStack {
+pub type DataStack = CellStack;
+pub type ReturnStack = CellStack;
+
+impl CellStack {
     #[inline]
     pub fn push(&mut self, value: Cell) {
         self.0.push(value);
