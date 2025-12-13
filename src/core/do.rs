@@ -10,6 +10,8 @@
 //! trailing `LOOP` or `+LOOP` token.
 //!
 //! [`https://www.taygeta.com/forth/dpans6.htm#6.1.1240`]
+use std::dbg;
+
 use crate::{error::RuntimeError, r#loop::LoopSys};
 use alloc::vec;
 
@@ -28,20 +30,35 @@ crate::define_word!(Do, "DO", |it, tks| {
     let mut vec_token = vec![];
     let mut is_loop_plus = false;
 
+    let mut nested_loop_ctr = 0;
     for token in tks {
         match token {
-            "LOOP" => break,
-            "+LOOP" => {
-                is_loop_plus = true;
-                break;
+            "DO" => {
+                // Nested loop: we'll have to skip their `LOOP`.
+                nested_loop_ctr += 1;
             }
-            other => vec_token.push(other),
+            "LOOP" => {
+                if nested_loop_ctr == 0 {
+                    break;
+                }
+                nested_loop_ctr -= 1;
+            }
+            "+LOOP" => {
+                if nested_loop_ctr == 0 {
+                    is_loop_plus = true;
+                    break;
+                }
+                nested_loop_ctr -= 1;
+            }
+            _other => {}
         }
+        vec_token.push(token);
     }
 
     loop_sys.to_stack(&mut it.return_stack);
 
     let looping_tokens = vec_token.join(" ");
+    dbg!(&looping_tokens);
     let mut intermediate_loop_sys = loop_sys;
     loop {
         if intermediate_loop_sys.current_index >= intermediate_loop_sys.range.end {
