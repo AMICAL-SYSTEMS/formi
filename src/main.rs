@@ -17,6 +17,7 @@ pub mod core;
 pub mod error;
 pub mod r#loop;
 pub mod stack;
+pub mod token_iterator;
 pub mod types;
 
 #[cfg(feature = "repl")]
